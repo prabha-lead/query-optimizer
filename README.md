@@ -6,7 +6,7 @@ This project is a **FastAPI-based SQL Query Optimization Tool** that utilizes **
 
 Watch the demo video to see the SQL Query Optimization Tool in action:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/waCn2XFrqOE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![Demo Video](https://img.youtube.com/vi/waCn2XFrqOE/0.jpg)](https://www.youtube.com/watch?v=waCn2XFrqOE)
 
 ## Features
 
