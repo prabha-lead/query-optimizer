@@ -2,6 +2,12 @@
 
 This project is a **FastAPI-based SQL Query Optimization Tool** that utilizes **Anthropic Claude** to analyze and optimize SQL queries. The application provides recommendations to improve database performance, including query restructuring, index suggestions, and best practices.
 
+## 📺 Demo Video
+
+Watch the demo video to see the SQL Query Optimization Tool in action:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/waCn2XFrqOE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 ## Features
 
 - Accepts SQL queries as input.
