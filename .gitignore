@@ -1,0 +1,61 @@
+# Ignore Python bytecode and cache files
+__pycache__/
+*.py[cod]
+
+# Ignore environment and dependencies
+.venv/
+poetry.lock
+
+# Ignore logs and local development files
+*.log
+*.sqlite3
+
+# Ignore VSCode settings
+.vscode/
+
+# Ignore MacOS system files
+.DS_Store
+
+# Ignore FastAPI auto-generated files
+*.pid
+
+# Ignore database migration files (if applicable)
+migrations/
+
+# Ignore compiled assets
+staticfiles/
+templates/__pycache__/
+
+# Ignore pytest cache
+.pytest_cache/
+tests/__pycache__/
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore temporary files
+*.swp
+*.swo
+
+# Ignore coverage reports
+.coverage
+htmlcov/
+
+# Ignore Uvicorn reload files
+*.reload
+
+# Ignore generated documentation
+docs/_build/
+
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore compiled language server cache
+mypy_cache/
+
+# Ignore Anthropic API-related cache files
+anthropic_cache/
+
+# Ignore database tool logs and generated SQL files
+logs/
+*.sql

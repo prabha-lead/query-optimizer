@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL Query Optimization Tool</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- CodeMirror CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/dracula.min.css"
+    />
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/sql/sql.min.js"></script>
+  </head>
+  <body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 shadow-md rounded-lg">
+      <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">
+        SQL Query Optimization Tool
+      </h1>
+
+      <form method="post" action="/optimize">
+        <label for="sql_query" class="block text-lg font-medium text-gray-700"
+          >Enter SQL Query:</label
+        >
+        <textarea id="sql_query" name="sql_query" class="hidden">
+{{ sql_query or '' }}</textarea
+        >
+        <div id="editor" class="border p-2 rounded-md bg-gray-50"></div>
+
+        <button
+          type="submit"
+          class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full"
+        >
+          Optimize Query
+        </button>
+      </form>
+
+      {% if optimized_query %}
+      <div class="mt-6">
+        <h2 class="text-xl font-semibold mb-2 text-gray-800">
+          Optimized Query:
+        </h2>
+        <div
+          class="relative bg-gray-900 text-white p-4 rounded-md overflow-auto"
+        >
+          <pre><code class="language-sql" id="optimized_query">{{ optimized_query | safe }}</code></pre>
+          <button
+            onclick="copyToClipboard('optimized_query')"
+            class="absolute top-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-sm"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+      {% endif %} {% if index_suggestion %}
+      <div class="mt-6">
+        <h2 class="text-xl font-semibold mb-2 text-gray-800">
+          Index Creation Suggestion:
+        </h2>
+        <div
+          class="relative bg-gray-900 text-white p-4 rounded-md overflow-auto"
+        >
+          <pre><code class="language-sql" id="index_suggestion">{{ index_suggestion | safe }}</code></pre>
+          <button
+            onclick="copyToClipboard('index_suggestion')"
+            class="absolute top-2 right-2 bg-gray-700 text-white px-2 py-1 rounded text-sm"
+          >
+            Copy
+          </button>
+        </div>
+      </div>
+      {% endif %} {% if recommendations %}
+      <div class="mt-6">
+        <h2 class="text-xl font-semibold mb-2 text-gray-800">
+          Additional Recommendations:
+        </h2>
+        <ul
+          class="list-disc list-inside bg-gray-100 p-4 rounded-md text-gray-800"
+        >
+          {% for recommendation in recommendations %}
+          <li>{{ recommendation }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    <script>
+      // Initialize CodeMirror Editor
+      var textarea = document.getElementById("sql_query");
+      var editor = CodeMirror(document.getElementById("editor"), {
+        mode: "text/x-sql",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        value: textarea.value,
+      });
+
+      // Sync CodeMirror value to textarea before submitting
+      document.querySelector("form").addEventListener("submit", function () {
+        textarea.value = editor.getValue();
+      });
+
+      // Copy function for optimized query & index creation
+      function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Copied to clipboard!");
+        });
+      }
+    </script>
+  </body>
+</html>
