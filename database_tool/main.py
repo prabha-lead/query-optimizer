@@ -12,6 +12,7 @@ from langchain_core.runnables import RunnableSequence
 from langchain_core.messages import AIMessage
 from fastapi.templating import Jinja2Templates
 import re
+from .logger import log_token_usage
 
 # Load environment variables
 load_dotenv()
@@ -22,8 +23,11 @@ app = FastAPI()
 # Set up Jinja2 templates for server-side rendering
 templates = Jinja2Templates(directory="templates")
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Set up logging (Console Output)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Define Pydantic model for input data
@@ -54,7 +58,6 @@ def parse_optimized_response(response: str):
     
     return optimized_query, index_suggestion, recommendations
 
-
 def optimize_query(sql_query: str):
     """
     Optimize SQL queries using LangChain and ChatAnthropic.
@@ -84,14 +87,13 @@ def optimize_query(sql_query: str):
         optimizer = RunnableSequence(prompt, model)
         result = optimizer.invoke({"sql_query": sql_query})
         
-        # Handle AIMessage output
-        if isinstance(result, AIMessage):
-            result = result.content  # Extract text content
+        # Log token usage using external function
+        log_token_usage(result)
         
-        if not isinstance(result, str):
-            raise TypeError(f"Invalid output type {type(result)}. Must be a str.")
-        
-        optimized_query, index_suggestion, recommendations = parse_optimized_response(result)
+        # Extract text content from AIMessage
+        result_content = result.content if isinstance(result, AIMessage) else str(result)
+
+        optimized_query, index_suggestion, recommendations = parse_optimized_response(result_content)
         elapsed_time = time.time() - start_time
         logger.info(f"Optimization completed in {elapsed_time:.2f} seconds.")
         
