@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DDL Optimization Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      function showLoading() {
+        document.getElementById("loading").classList.remove("hidden");
+      }
+    </script>
+  </head>
+  <body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto bg-white p-6 shadow-md rounded-lg">
+      <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">
+        DDL Optimization Report
+      </h1>
+
+      <form
+        method="post"
+        action="/ddl-optimize-report"
+        enctype="multipart/form-data"
+        onsubmit="showLoading()"
+      >
+        <label class="block text-lg font-medium text-gray-700"
+          >Upload DDL (.sql) File:</label
+        >
+        <input
+          type="file"
+          name="file"
+          accept=".sql"
+          required
+          class="w-full p-2 border rounded-md mt-2"
+        />
+
+        <button
+          type="submit"
+          class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg w-full"
+        >
+          Upload & Optimize
+        </button>
+      </form>
+
+      <div id="loading" class="hidden text-center text-gray-700 mt-4">
+        <p>Processing... Please wait.</p>
+      </div>
+    </div>
+  </body>
+</html>
