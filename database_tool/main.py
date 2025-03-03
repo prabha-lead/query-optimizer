@@ -6,10 +6,7 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import logging
 import time
-from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableSequence
-from langchain_core.messages import AIMessage
+from openai import AzureOpenAI
 from fastapi.templating import Jinja2Templates
 import re
 from .logger import log_token_usage
@@ -38,10 +35,17 @@ logger = logging.getLogger(__name__)
 class OptimizationRequest(BaseModel):
     sql_query: str
 
-# Initialize Anthropic API client
-api_key = os.getenv("ANTHROPIC_API_KEY")
-if not api_key:
-    raise ValueError("ANTHROPIC_API_KEY is not set in the environment variables.")
+# Initialize Azure OpenAI client
+open_api_key = os.getenv("OPENAI_API_KEY")
+api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
+if not open_api_key or not api_base:
+    raise ValueError("OPENAI_API_KEY or AZURE_OPENAI_ENDPOINT is not set in the environment variables.")
+
+client = AzureOpenAI(
+    api_key=open_api_key,  
+    api_version="2024-08-01-preview",
+    azure_endpoint=api_base
+)
 
 def parse_optimized_response(response: str):
     """
@@ -54,50 +58,44 @@ def parse_optimized_response(response: str):
     sections = re.split(r'\n\n+', response.strip())
     for section in sections:
         if section.lower().startswith("optimized sql query:"):
-            optimized_query = section.split("\n", 1)[-1].strip()
-        elif section.lower().startswith("index creation suggestion:"):
-            index_suggestion = section.split("\n", 1)[-1].strip()
+            optimized_query = section.split("```sql", 1)[-1].rsplit("```", 1)[0].strip()
+        elif section.lower().startswith("index creation suggestion (if applicable):"):
+            index_suggestion = section.split("```sql", 1)[-1].rsplit("```", 1)[0].strip()
         elif section.lower().startswith("additional recommendations:"):
-            recommendations = section.split("\n")[1:]
-    
+            recommendations = [line.strip() for line in section.split("\n")[1:] if line.strip().startswith("-")]
+
     return optimized_query, index_suggestion, recommendations
 
 def optimize_query(sql_query: str):
     """
-    Optimize SQL queries using LangChain and ChatAnthropic.
+    Optimize SQL queries using Azure OpenAI.
     """
     try:
         logger.info("Starting SQL optimization task...")
         start_time = time.time()
         
-        # Initialize AI model
-        model = ChatAnthropic(
+        system_prompt = "You are an expert in database query optimization. Optimize the given SQL query for performance."
+        user_prompt = f"Optimize the following SQL query and return the response in this strict format:\n\n" \
+                      f"Optimized SQL Query:\n```sql\n[Optimized SQL Query]\n```\n\n" \
+                      f"Index Creation Suggestion (if applicable):\n```sql\n[Index Query]\n```\n\n" \
+                      f"Additional Recommendations:\n- [Recommendation 1]\n- [Recommendation 2]\n- [Recommendation 3]\n- [Recommendation n+]\n\n" \
+                      f"SQL Query: {sql_query}"
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             temperature=0.7,
-            model="claude-3-5-sonnet-20241022",
-            anthropic_api_key=api_key
         )
         
-        # Define strict response format in the prompt
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert in database query optimization. Optimize the given SQL query for performance."),
-            ("human", "Optimize the following SQL query and return the response in this strict format:\n\n"
-                      "Optimized SQL Query:\n```sql\n[Optimized SQL Query]\n```\n\n"
-                      "Index Creation Suggestion (if applicable):\n```sql\n[Index Query]\n```\n\n"
-                      "Additional Recommendations:\n- [Recommendation 1]\n- [Recommendation 2]\n- [Recommendation 3]\n\n"
-                      "SQL Query: {sql_query}")
-        ])
-        
-        # Ensure correct input format (dictionary with expected key)
-        optimizer = RunnableSequence(prompt, model)
-        result = optimizer.invoke({"sql_query": sql_query})
+        response_message = response.choices[0].message.content
         
         # Log token usage using external function
-        log_token_usage(result)
+        log_token_usage(response)
         
-        # Extract text content from AIMessage
-        result_content = result.content if isinstance(result, AIMessage) else str(result)
-
-        optimized_query, index_suggestion, recommendations = parse_optimized_response(result_content)
+        optimized_query, index_suggestion, recommendations = parse_optimized_response(response_message)
         elapsed_time = time.time() - start_time
         logger.info(f"Optimization completed in {elapsed_time:.2f} seconds.")
         
@@ -147,36 +145,35 @@ def sql_to_markdown(sql_content: str):
 # Define function to process DDL SQL file
 def optimize_ddl(ddl_sql: str):
     """
-    Optimize DDL SQL using LangChain and ChatAnthropic.
+    Optimize DDL SQL using Azure OpenAI.
     """
     try:
         logging.info("Starting DDL optimization task...")
         start_time = time.time()
         
-        model = ChatAnthropic(
-            temperature=0.7,
-            model="claude-3-5-sonnet-20241022",
-            anthropic_api_key=api_key
-        )
-        
         markdown_input = sql_to_markdown(ddl_sql)
         
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert in database schema optimization. Optimize the given DDL SQL for performance and best practices."),
-            ("human", "Analyze the following DDL SQL file and return the response in this format:\n\n"
-                      "Optimized DDL:\n```sql\n[Optimized SQL]\n```\n\n"
-                      "Indexing Strategy:\n```sql\n[Index Creation Queries]\n```\n\n"
-                      "Additional Recommendations:\n- [Recommendation 1]\n- [Recommendation 2]\n- [Recommendation 3]\n\n"
-                      "DDL SQL: {markdown_input}")
-        ])
+        system_prompt = "You are an expert in database schema optimization. Optimize the given DDL SQL for performance and best practices."
+        user_prompt = f"Analyze the following DDL SQL file and return the response in this format:\n\n" \
+                      f"Optimized DDL:\n```sql\n[Optimized SQL]\n```\n\n" \
+                      f"Indexing Strategy:\n```sql\n[Index Creation Queries]\n```\n\n" \
+                      f"Additional Recommendations:\n- [Recommendation 1]\n- [Recommendation 2]\n- [Recommendation 3]\n\n" \
+                      f"DDL SQL: {markdown_input}"
         
-        optimizer = RunnableSequence(prompt, model)
-        result = optimizer.invoke({"markdown_input": markdown_input})
-        log_token_usage(result)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+        )
         
-        result_content = result.content if isinstance(result, AIMessage) else str(result)
+        response_message = response.choices[0].message.content
         
-        optimized_sql, index_suggestions, recommendations = parse_ddl_response(result_content)
+        log_token_usage(response)
+        
+        optimized_sql, index_suggestions, recommendations = parse_ddl_response(response_message)
         elapsed_time = time.time() - start_time
         logging.info(f"DDL Optimization completed in {elapsed_time:.2f} seconds.")
         
@@ -198,7 +195,7 @@ def parse_ddl_response(response: str):
         elif section.lower().startswith("indexing strategy:"):
             index_suggestions = section.split("\n", 1)[-1].strip()
         elif section.lower().startswith("additional recommendations:"):
-            recommendations = section.split("\n")[1:]
+            recommendations = [line.strip() for line in section.split("\n")[1:] if line.strip().startswith("-")]
     
     return optimized_sql, index_suggestions, recommendations
 
